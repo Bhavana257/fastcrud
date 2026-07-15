@@ -243,15 +243,24 @@ async def test_create_with_nested_related_object(async_session):
     assert fetched.name == "test_tier_nested"
 
 @pytest.mark.asyncio
-async def test_create_with_nested_related_object_no_relationship(async_session):
-    """Test that create() works normally when no nested related objects are present."""
-    from ..conftest import TierModel
+async def test_create_with_nested_related_object(async_session):
+    """Test that create() handles nested related objects (fixes #282)."""
+    from ..conftest import Author, Article
     from pydantic import BaseModel
 
-    class TierCreate(BaseModel):
+    class AuthorCreate(BaseModel):
         name: str
 
-    crud = FastCRUD(TierModel)
-    tier_create = TierCreate(name="simple_tier_no_relation")
-    result = await crud.create(async_session, tier_create)
+    class ArticleWithAuthorCreate(BaseModel):
+        title: str
+        author: AuthorCreate
+
+    crud = FastCRUD(Article)
+
+    create_data = ArticleWithAuthorCreate(
+        title="Test Article",
+        author=AuthorCreate(name="Test Author"),
+    )
+
+    result = await crud.create(async_session, create_data)
     assert result is None
